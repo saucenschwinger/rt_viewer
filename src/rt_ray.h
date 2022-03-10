@@ -8,26 +8,26 @@ namespace rt {
 class Ray {
   public:
     Ray() {}
-    Ray(const glm::vec3 &a, const glm::vec3 &b)
+    Ray(const glm::vec3 &orig, const glm::vec3 &dir)
     {
-        A = a;
-        B = b;
+        this->orig = orig;
+        this->dir = dir;
     }
     glm::vec3 origin() const
     {
-        return A;
+        return orig;
     }
     glm::vec3 direction() const
     {
-        return B;
+        return dir;
     }
     glm::vec3 point_at_parameter(float t) const
     {
-        return A + t * B;
+        return orig + t * dir;
     }
 
-    glm::vec3 A;
-    glm::vec3 B;
+    glm::vec3 orig;
+    glm::vec3 dir;
 };
 
 }  // namespace rt

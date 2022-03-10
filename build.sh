@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export RT_VIEWER_ROOT=/home/saucenschwinger/Workspace/rt_viewer
 if [ -z "$RT_VIEWER_ROOT" ]
 then
     echo "RT_VIEWER_ROOT is not set"

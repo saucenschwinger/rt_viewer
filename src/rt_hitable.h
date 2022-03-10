@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/component_wise.hpp>
+//#include "materials.h"
+
+//class rt::material;
 
 namespace rt {
 
@@ -11,6 +14,7 @@ struct HitRecord {
     float t;
     glm::vec3 p;
     glm::vec3 normal;
+    material& mat;
 };
 
 class Hitable {
