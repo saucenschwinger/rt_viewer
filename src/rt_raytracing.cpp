@@ -4,13 +4,15 @@
 #include "rt_sphere.h"
 #include "rt_triangle.h"
 #include "rt_box.h"
+#include "material.h"
 #include "aux.h"
-//#include "materials.h"
 
 #include "cg_utils2.h"  // Used for OBJ-mesh loading
 #include <stdlib.h>     // Needed for drand48()
 
 namespace rt {
+
+struct HitRecord;
 
 // Store scene (world) in a global variable for convenience
 struct Scene {
@@ -72,17 +74,20 @@ glm::vec3 color(RTContext &rtx, const Ray &r, int max_bounces)
     HitRecord rec;
     if (hit_world(r, 0.001f, 1000., rec)) {
         rec.normal = glm::normalize(rec.normal);  // Always normalise before use!
+        if (rtx.show_normals) { return rec.normal * 0.5f + 0.5f; }
+
         Ray target;
         glm::vec3 att = glm::vec3(1.);
-        lambertian l(att);
-        l.scatter(r, rec, att, target);
+        if (rec.mat->scatter(r, rec, att, target)) {
+            return att*color(rtx, target, max_bounces--);
+        } else {
+            return glm::vec3(0.);
+        }
         //= rec.p + rec.normal + random_in_unit_sphere();
 
-        if (rtx.show_normals) { return rec.normal * 0.5f + 0.5f; }
 
         // Implement lighting for materials here
         // ...
-        return glm::vec3(0.5)*color(rtx, target, max_bounces--);
         //return glm::vec3(0.5);
     }
 
@@ -95,6 +100,7 @@ glm::vec3 color(RTContext &rtx, const Ray &r, int max_bounces)
 // MODIFY THIS FUNCTION!
 void setupScene(RTContext &rtx, const char *filename)
 {
+    // TODO sphere material
     g_scene.ground = Sphere(glm::vec3(0.0f, -1000.5f, 0.0f), 1000.0f);
     g_scene.spheres = {
         Sphere(glm::vec3(0.0f, 0.0f, 0.0f), 0.5f),

@@ -49,7 +49,7 @@ include_directories(SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui")
 # Set extra compiler flags
 if(UNIX AND NOT APPLE)
     #set(CMAKE_CXX_FLAGS "-W -Wall -std=c++11 -fopenmp")
-  set(CMAKE_CXX_FLAGS "-std=c++11 -fopenmp")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -fopenmp")
 endif(UNIX AND NOT APPLE)
 if(APPLE)
   set(CMAKE_CXX_FLAGS "-W -Wall -std=c++11 -ObjC++")
