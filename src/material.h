@@ -67,7 +67,6 @@ class transparent : public material {
         bool scatter( const Ray& r_in, const HitRecord& rec, glm::vec3& attenuation, Ray& scattered) {
             // show some reflections, doesnt really work
             if (random_double() > alpha) {
-                //attenuation = (1-alpha)*alfredo + alpha*glm::vec3(1.);
                 attenuation = alfredo;
                 // reflect
                 scattered.orig = rec.p;
@@ -80,8 +79,8 @@ class transparent : public material {
                 attenuation = (1-alpha)*alfredo + alpha*glm::vec3(1.);
                 scattered.dir = r_in.dir;
                 scattered.orig = rec.p;
-                if (near_zero(scattered.dir))
-                    scattered.dir = rec.normal;
+                //if (near_zero(scattered.dir))
+                //    scattered.dir = rec.normal;
                 return true;
             }
         }

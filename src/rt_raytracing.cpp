@@ -114,7 +114,7 @@ void setupScene(RTContext &rtx, const char *filename)
     };
 #endif
 
-    glm::vec3 transl = glm::vec3(-0.3f, 0.135f, -1.0f);
+    glm::vec3 transl = glm::vec3(-0.3f, 0.15, -1.0f);
 
 #if 1
     cg::OBJMesh mesh;
@@ -172,7 +172,7 @@ void updateLine(RTContext &rtx, int y)
 
     // You can try parallelising this loop by uncommenting this line:
     int samples = rtx.samples;
-    #pragma omp parallel for schedule(guided) num_threads(7)
+    #pragma omp parallel for schedule(guided) num_threads(4)
     for (int x = 0; x < nx; ++x) {
         glm::vec3 c;
         for (int s=0; s < samples; s++) {
@@ -228,9 +228,6 @@ void resetImage(RTContext &rtx)
     rtx.current_frame = 0;
     rtx.current_line = 0;
     rtx.freeze = false;
-}
-
-void write Image(RTContext &rtx) {
 }
 
 void resetAccumulation(RTContext &rtx)
