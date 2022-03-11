@@ -36,3 +36,17 @@ glm::vec3 random_in_unit_sphere() {
     }
 }
 
+// copied from "Raytracing in One Weekend"
+glm::vec3 random_in_hemisphere(const glm::vec3& normal) {
+    glm::vec3 in_unit_sphere = random_in_unit_sphere();
+    if (glm::dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
+}
+
+inline bool near_zero(glm::vec3 v) {
+    return fabs(v[0]) < 1e-3 && fabs(v[1]) < 1e-3 && fabs(v[2]) < 1e-3;
+}
+
+

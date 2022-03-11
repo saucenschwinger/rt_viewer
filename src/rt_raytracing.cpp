@@ -9,6 +9,7 @@
 
 #include "cg_utils2.h"  // Used for OBJ-mesh loading
 #include <stdlib.h>     // Needed for drand48()
+#include <memory>
 
 namespace rt {
 
@@ -48,13 +49,16 @@ bool hit_world(const Ray &r, float t_min, float t_max, HitRecord &rec)
             rec = temp_rec;
         }
     }
-    for (int i = 0; i < g_scene.mesh.size(); ++i) {
-        if (g_scene.mesh[i].hit(r, t_min, closest_so_far, temp_rec)) {
-            hit_anything = true;
-            closest_so_far = temp_rec.t;
-            rec = temp_rec;
+    if (g_scene.mesh_bbox.hit(r, t_min, closest_so_far, temp_rec)) {
+        for (int i = 0; i < g_scene.mesh.size(); ++i) {
+            if (g_scene.mesh[i].hit(r, t_min, closest_so_far, temp_rec)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                rec = temp_rec;
+            }
         }
     }
+
     return hit_anything;
 }
 
@@ -78,17 +82,12 @@ glm::vec3 color(RTContext &rtx, const Ray &r, int max_bounces)
 
         Ray target;
         glm::vec3 att = glm::vec3(1.);
+        // TODO check scatter ret val
         if (rec.mat->scatter(r, rec, att, target)) {
             return att*color(rtx, target, max_bounces--);
         } else {
             return glm::vec3(0.);
         }
-        //= rec.p + rec.normal + random_in_unit_sphere();
-
-
-        // Implement lighting for materials here
-        // ...
-        //return glm::vec3(0.5);
     }
 
     // If no hit, return sky color
@@ -100,32 +99,62 @@ glm::vec3 color(RTContext &rtx, const Ray &r, int max_bounces)
 // MODIFY THIS FUNCTION!
 void setupScene(RTContext &rtx, const char *filename)
 {
-    // TODO sphere material
-    g_scene.ground = Sphere(glm::vec3(0.0f, -1000.5f, 0.0f), 1000.0f);
-    g_scene.spheres = {
-        Sphere(glm::vec3(0.0f, 0.0f, 0.0f), 0.5f),
-        Sphere(glm::vec3(1.0f, 0.0f, 0.0f), 0.5f)
-        //Sphere(glm::vec3(-1.0f, 0.0f, 0.0f), 0.5f),
-    };
-    //g_scene.boxes = {
-    //    Box(glm::vec3(0.0f, -0.25f, 0.0f), glm::vec3(0.25f)),
-    //    Box(glm::vec3(1.0f, -0.25f, 0.0f), glm::vec3(0.25f)),
-    //    Box(glm::vec3(-1.0f, -0.25f, 0.0f), glm::vec3(0.25f)),
-    //};
+    auto red    = std::make_shared<lambertian>(glm::vec3(1.,0.1,0.1));
+    auto ggreen = std::make_shared<lambertian>(glm::vec3(0.01,154/255.,23/255.));
+    auto geld   = std::make_shared<lambertian>(glm::vec3(1.,215/255.,0.01));
+    auto ibm    = std::make_shared<lambertian>(glm::vec3(0.01, 98/255., 1.));
+    auto chrome = std::make_shared<metallic>(glm::vec3(219/255.,226/255.,233/255.));
 
-#if 0
+    g_scene.ground = Sphere(glm::vec3(0.0f, -1000.5f, 0.0f), 1000.0f,  ggreen);
+#if 1
+    g_scene.spheres = {
+        Sphere(glm::vec3(0.0f, -0.3f, 1.0f), 0.2f, geld),
+        Sphere(glm::vec3(1.5f, -0.3f, 0.0f) , 0.9f, red ),
+        Sphere(glm::vec3(-1.3f, -0.3f, 0.0f), 0.3f, ibm ),
+    };
+#endif
+
+    glm::vec3 transl = glm::vec3(-0.3f, 0.135f, -1.0f);
+
+#if 1
     cg::OBJMesh mesh;
     cg::objMeshLoad(mesh, filename);
     g_scene.mesh.clear();
+    mesh.mat = chrome;
+    glm::vec3 ub;   // upper bound for x,y,z
+    glm::vec3 lb;   // lower bound for x,y,z
     for (int i = 0; i < mesh.indices.size(); i += 3) {
         int i0 = mesh.indices[i + 0];
         int i1 = mesh.indices[i + 1];
         int i2 = mesh.indices[i + 2];
-        glm::vec3 v0 = mesh.vertices[i0] + glm::vec3(0.0f, 0.135f, 0.0f);
-        glm::vec3 v1 = mesh.vertices[i1] + glm::vec3(0.0f, 0.135f, 0.0f);
-        glm::vec3 v2 = mesh.vertices[i2] + glm::vec3(0.0f, 0.135f, 0.0f);
-        g_scene.mesh.push_back(Triangle(v0, v1, v2));
+        glm::vec3 v0 = mesh.vertices[i0] + transl;
+        glm::vec3 v1 = mesh.vertices[i1] + transl;
+        glm::vec3 v2 = mesh.vertices[i2] + transl;
+        ub = glm::max(glm::max(glm::max(ub, v0), v1), v2);
+        lb = glm::min(glm::min(glm::min(lb, v0), v1), v2);
+        g_scene.mesh.push_back(Triangle(v0, v1, v2, mesh.mat));
     }
+    glm::vec3 cent = 0.5f*(ub+lb);
+    glm::vec3 rad = glm::abs(ub-lb)*0.5f;
+    
+    //ub = glm::max(ub, -1.f*lb);
+    printf("ub:%.2f %.2f %.2f\n", ub[0], ub[1], ub[2]);
+    printf("lb:%.2f %.2f %.2f\n", lb[0], lb[1], lb[2]);
+    printf("bbox: cent:(%.2f %.2f %.2f), rad:(%.2f %.2f %.2f)\n",  cent[0],cent[1],cent[2],rad[0],rad[1],rad[2]);
+
+    auto transp = std::make_shared<transparent>(glm::vec3(0.8, 0.8, 1.), 0.7);
+    g_scene.mesh_bbox = Box(cent, rad, transp);
+#endif
+
+
+#if 1
+    g_scene.boxes = {
+        g_scene.mesh_bbox = Box(cent, rad, transp),
+        Box(glm::vec3(-0.5f, -0.1, -1.0f), glm::vec3(0.1), chrome),
+        Box(glm::vec3(-0.6f, -0.5, 1.0f), glm::vec3(0.08f), red),
+        Box(glm::vec3(0.9f, -0.5f, 1.0f), glm::vec3(0.05), ibm),
+        Box(glm::vec3(0.5f, -0.5f, -4.f), glm::vec3(1.5), geld)
+    };
 #endif
 }
 
@@ -143,7 +172,7 @@ void updateLine(RTContext &rtx, int y)
 
     // You can try parallelising this loop by uncommenting this line:
     int samples = rtx.samples;
-    #pragma omp parallel for schedule(dynamic) num_threads(2)
+    #pragma omp parallel for schedule(guided) num_threads(7)
     for (int x = 0; x < nx; ++x) {
         glm::vec3 c;
         for (int s=0; s < samples; s++) {
@@ -162,14 +191,17 @@ void updateLine(RTContext &rtx, int y)
             c += color(rtx, r, rtx.max_bounces);
         }
 
-        if (rtx.current_frame <= 0) {
-                // Here we make the first frame blend with the old image,
-                // to smoothen the transition when resetting the accumulation
-                glm::vec4 old = rtx.image[y * nx + x];
-                rtx.image[y * nx + x] = glm::clamp(old / glm::max(1.0f, old.a), 0.0f, 1.0f);
+        if (rtx.smooth_update) {
+            if (rtx.current_frame <= 0) {
+                    // Here we make the first frame blend with the old image,
+                    // to smoothen the transition when resetting the accumulation
+                    glm::vec4 old = rtx.image[y * nx + x];
+                    rtx.image[y * nx + x] = glm::clamp(old / glm::max(1.0f, old.a), 0.0f, 1.0f);
+            }
+            rtx.image[y * nx + x] += glm::vec4(c/glm::vec3(samples), 1.0f);
+        } else {
+            rtx.image[y * nx + x] = glm::vec4(c/glm::vec3(samples), 1.0f);
         }
-
-        rtx.image[y * nx + x] += glm::vec4(c/glm::vec3(samples), 1.0f);
     }
 }
 
@@ -196,6 +228,9 @@ void resetImage(RTContext &rtx)
     rtx.current_frame = 0;
     rtx.current_line = 0;
     rtx.freeze = false;
+}
+
+void write Image(RTContext &rtx) {
 }
 
 void resetAccumulation(RTContext &rtx)

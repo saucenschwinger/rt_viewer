@@ -30,6 +30,7 @@ struct Context {
     GLuint program;
     cg::Trackball trackball;
     GLuint emptyVAO;
+    bool gamma_corrr = 1;
     rt::RTContext rtx;
     GLuint texture = 0;
     float elapsed_time;
@@ -126,6 +127,8 @@ void drawImage(Context &ctx)
     glUseProgram(ctx.program);
     glUniform1i(glGetUniformLocation(ctx.program, "u_texture"), 0);
 
+    glUniform1f(glGetUniformLocation(ctx.program, "u_gamma_corrr"), (float) ctx.gamma_corrr);
+
     // Draw fullscreen quad (without any vertex buffers)
     glBindVertexArray(ctx.emptyVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -143,6 +146,9 @@ void showGui(Context &ctx)
     }
     if (ImGui::Checkbox("Show normals", &ctx.rtx.show_normals)) { rt::resetAccumulation(ctx.rtx); }
     // Add more settings and parameters here
+    if (ImGui::Checkbox("Gamma correrction", &ctx.gamma_corrr)) { rt::resetAccumulation(ctx.rtx); }
+
+    if (ImGui::Checkbox("Smooth updates", &ctx.rtx.smooth_update)) { rt::resetAccumulation(ctx.rtx); }
     // ...
     if (ImGui::SliderInt("Samples", &ctx.rtx.samples, 0, 50)) {
         rt::resetAccumulation(ctx.rtx);
